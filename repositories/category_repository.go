@@ -6,60 +6,89 @@ import (
 	"kasir2-api/models"
 )
 
-type ProductRepository struct {
+type CategoryRepository struct {
 	db *sql.DB
 }
 
-func NewProductRepository(db *sql.DB) *ProductRepository {
-	return &ProductRepository{db: db}
+func NewCategoryRepository(db *sql.DB) *CategoryRepository {
+	return &CategoryRepository{db: db}
 }
 
-func (repo *ProductRepository) GetAll() ([]models.Category, error) {
-	query := "SELECT ID, Name, Description FROM products"
+// =====================
+// GET ALL
+// =====================
+func (repo *CategoryRepository) GetAll() ([]models.Category, error) {
+	query := `SELECT id, name, description FROM categories`
+
 	rows, err := repo.db.Query(query)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	products := make([]models.Category, 0)
+	categories := make([]models.Category, 0)
 	for rows.Next() {
-		var p models.Category
-		err := rows.Scan(&p.ID, &p.Name, &p.Description)
-		if err != nil {
+		var c models.Category
+		if err := rows.Scan(&c.ID, &c.Name, &c.Description); err != nil {
 			return nil, err
 		}
-		products = append(products, p)
+		categories = append(categories, c)
 	}
 
-	return products, nil
+	return categories, nil
 }
 
-func (repo *ProductRepository) Create(product *models.Category) error {
-	query := "INSERT INTO products (Name, Description) VALUES ($1, $2) RETURNING id"
-	err := repo.db.QueryRow(query, product.Name, product.Description).Scan(&product.ID)
-	return err
+// =====================
+// CREATE
+// =====================
+func (repo *CategoryRepository) Create(category *models.Category) error {
+	query := `
+		INSERT INTO categories (name, description)
+		VALUES ($1, $2)
+		RETURNING id
+	`
+
+	return repo.db.
+		QueryRow(query, category.Name, category.Description).
+		Scan(&category.ID)
 }
 
-// GetByID - ambil produk by ID
-func (repo *ProductRepository) GetByID(id int) (*models.Category, error) {
-	query := "SELECT ID, Name, Description FROM products WHERE ID = $1"
+// =====================
+// GET BY ID
+// =====================
+func (repo *CategoryRepository) GetByID(id int) (*models.Category, error) {
+	query := `SELECT id, name, description FROM categories WHERE id = $1`
 
-	var p models.Category
-	err := repo.db.QueryRow(query, id).Scan(&p.ID, &p.Name, &p.Description)
+	var c models.Category
+	err := repo.db.QueryRow(query, id).
+		Scan(&c.ID, &c.Name, &c.Description)
+
 	if err == sql.ErrNoRows {
-		return nil, errors.New("category tidak ditemukan")
+		return nil, errors.New("kategori tidak ditemukan")
 	}
 	if err != nil {
 		return nil, err
 	}
 
-	return &p, nil
+	return &c, nil
 }
 
-func (repo *ProductRepository) Update(product *models.Category) error {
-	query := "UPDATE products SET Name = $1, Description = $2 WHERE ID = $3"
-	result, err := repo.db.Exec(query, product.Name, product.Description, product.ID)
+// =====================
+// UPDATE
+// =====================
+func (repo *CategoryRepository) Update(category *models.Category) error {
+	query := `
+		UPDATE categories
+		SET name = $1, description = $2
+		WHERE id = $3
+	`
+
+	result, err := repo.db.Exec(
+		query,
+		category.Name,
+		category.Description,
+		category.ID,
+	)
 	if err != nil {
 		return err
 	}
@@ -70,26 +99,31 @@ func (repo *ProductRepository) Update(product *models.Category) error {
 	}
 
 	if rows == 0 {
-		return errors.New("produk tidak ditemukan")
+		return errors.New("kategori tidak ditemukan")
 	}
 
 	return nil
 }
 
-func (repo *ProductRepository) Delete(id int) error {
-	query := "DELETE FROM products WHERE id = $1"
+// =====================
+// DELETE
+// =====================
+func (repo *CategoryRepository) Delete(id int) error {
+	query := `DELETE FROM categories WHERE id = $1`
+
 	result, err := repo.db.Exec(query, id)
 	if err != nil {
 		return err
 	}
+
 	rows, err := result.RowsAffected()
 	if err != nil {
 		return err
 	}
 
 	if rows == 0 {
-		return errors.New("category tidak ditemukan")
+		return errors.New("kategori tidak ditemukan")
 	}
 
-	return err
+	return nil
 }

@@ -1,18 +1,24 @@
 package main
 
 import (
+	"kasir2-api/database"
+	"kasir2-api/handlers"
+	"kasir2-api/models"
+	"kasir2-api/repositories"
+	"kasir2-api/services"
 	"log"
 	"net/http"
 	"os"
 	"strings"
 
-	"kasir2-api/database"
-	"kasir2-api/handlers"
-	"kasir2-api/repositories"
-	"kasir2-api/services"
-
 	"github.com/spf13/viper"
 )
+
+var categories = []models.Category{
+	{ID: 1, Name: "POP Mie", Description: "Makanan"},
+	{ID: 2, Name: "Teh Gelas", Description: "Minuman"},
+	{ID: 3, Name: "Susu Indomilk", Description: "Minuman"},
+}
 
 type Config struct {
 	Port   string `mapstructure:"PORT"`
