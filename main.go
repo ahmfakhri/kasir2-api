@@ -101,7 +101,8 @@ type Config struct {
 
 func main() {
 	viper.AutomaticEnv()
-
+	viper.SetConfigFile(".env")
+	_ = viper.ReadInConfig()
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 	if _, err := os.Stat(".env"); err == nil {
@@ -113,12 +114,16 @@ func main() {
 		Port:   viper.GetString("PORT"),
 		DBConn: viper.GetString("DB_CONN"),
 	}
+	if config.DBConn == "" {
+		log.Fatal("DB_CONN is not set in environment variables")
+		return
+	}
 
 	// Setup database
 	db, err := database.InitDB(config.DBConn)
 	if err != nil {
 		fmt.Println("gagal koneksi ke database:", err)
-		log.Fatal("gagal koneksi ke database:", err)
+
 		return
 	}
 	row := db.QueryRow("SELECT current_database()")
