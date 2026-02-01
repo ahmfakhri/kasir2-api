@@ -3,7 +3,7 @@ package main
 import (
 	"kasir2-api/database"
 	"kasir2-api/handlers"
-	"kasir2-api/models"
+
 	"kasir2-api/repositories"
 	"kasir2-api/services"
 	"log"
@@ -13,12 +13,6 @@ import (
 
 	"github.com/spf13/viper"
 )
-
-var categories = []models.Category{
-	{ID: 1, Name: "POP Mie", Description: "Makanan"},
-	{ID: 2, Name: "Teh Gelas", Description: "Minuman"},
-	{ID: 3, Name: "Susu Indomilk", Description: "Minuman"},
-}
 
 type Config struct {
 	Port   string `mapstructure:"PORT"`
@@ -92,14 +86,14 @@ func main() {
 	defer db.Close()
 
 	// ===== Dependency Injection =====
-	productRepo := repositories.NewProductRepository(db)
-	productService := services.NewProductService(productRepo)
-	productHandler := handlers.NewProductHandler(productService)
+	categoryRepo := repositories.NewCategoryRepository(db)
+	categoryService := services.NewCategoryService(categoryRepo)
+	categoryHandler := handlers.NewCategoryHandler(categoryService)
 
 	// ===== Routes =====
 	// categories === products table
-	http.HandleFunc("/api/categories", productHandler.HandleProducts)
-	http.HandleFunc("/api/categories/", productHandler.HandleProductByID)
+	http.HandleFunc("/api/categories", categoryHandler.HandleCategories)
+	http.HandleFunc("/api/categories/", categoryHandler.HandleCategoryByID)
 
 	// optional health check
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
