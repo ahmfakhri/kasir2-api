@@ -3,18 +3,21 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"kasir2-api/database"
+	"kasir2-api/handlers"
+	"kasir2-api/models"
+	"kasir2-api/repositories"
+	"kasir2-api/services"
+	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
+
+	"github.com/spf13/viper"
 )
 
-type Category struct {
-	ID          int    `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-}
-
-var categories = []Category{
+var categories = []models.Category{
 	{ID: 1, Name: "POP Mie", Description: "Makanan"},
 	{ID: 2, Name: "Teh Gelas", Description: "Minuman"},
 	{ID: 3, Name: "Susu Indomilk", Description: "Minuman"},
@@ -48,7 +51,7 @@ func updateCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var updated Category
+	var updated models.Category
 	err = json.NewDecoder(r.Body).Decode(&updated)
 	if err != nil {
 		http.Error(w, "Bad request", http.StatusBadRequest)
@@ -91,7 +94,46 @@ func deleteCategory(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "Category tidak ditemukan", http.StatusNotFound)
 }
 
+type Config struct {
+	Port   string `mapstructure:"PORT"`
+	DBConn string `mapstructure:"DB_CONN"`
+}
+
 func main() {
+	viper.AutomaticEnv()
+
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+	if _, err := os.Stat(".env"); err == nil {
+		viper.SetConfigFile(".env")
+		_ = viper.ReadInConfig()
+	}
+
+	config := Config{
+		Port:   viper.GetString("PORT"),
+		DBConn: viper.GetString("DB_CONN"),
+	}
+
+	// Setup database
+	db, err := database.InitDB(config.DBConn)
+	if err != nil {
+		fmt.Println("gagal koneksi ke database:", err)
+		log.Fatal("gagal koneksi ke database:", err)
+		return
+	}
+	row := db.QueryRow("SELECT current_database()")
+	var dbName string
+	row.Scan(&dbName)
+	log.Println("CONNECTED TO DB:", dbName)
+
+	defer db.Close()
+
+	productRepo := repositories.NewProductRepository(db)
+	productService := services.NewProductService(productRepo)
+	productHandler := handlers.NewProductHandler(productService)
+
+	// setup routes
+	http.HandleFunc("/api/produk", productHandler.HandleProducts)
 
 	// GET /api/categories/{id}
 	// PUT /api/categories/{id}
@@ -114,7 +156,7 @@ func main() {
 			json.NewEncoder(w).Encode(categories)
 
 		} else if r.Method == "POST" {
-			var newCategory Category
+			var newCategory models.Category
 			err := json.NewDecoder(r.Body).Decode(&newCategory)
 			if err != nil {
 				http.Error(w, "Bad request", http.StatusBadRequest)
@@ -130,6 +172,10 @@ func main() {
 		}
 	})
 
-	fmt.Println("Server running di localhost:8080")
-	http.ListenAndServe(":8080", nil)
+	fmt.Println("Server running di localhost:" + config.Port)
+
+	err = http.ListenAndServe(":"+config.Port, nil)
+	if err != nil {
+		fmt.Println("gagal Run Server", err)
+	}
 }
