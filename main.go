@@ -90,10 +90,16 @@ func main() {
 	categoryService := services.NewCategoryService(categoryRepo)
 	categoryHandler := handlers.NewCategoryHandler(categoryService)
 
+	// ===== Dependency Injection for Transaction =====
+	transactionRepo := repositories.NewTransactionRepository(db)
+	transactionService := services.NewTransactionService(transactionRepo)
+	transactionHandler := handlers.NewTransactionHandler(transactionService)
+
 	// ===== Routes =====
 	// categories === products table
 	http.HandleFunc("/api/categories", categoryHandler.HandleCategories)
 	http.HandleFunc("/api/categories/", categoryHandler.HandleCategoryByID)
+	http.HandleFunc("/api/transactions", transactionHandler.HandleCheckout)
 
 	// optional health check
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -106,4 +112,5 @@ func main() {
 	if err != nil {
 		log.Fatal("server error:", err)
 	}
+
 }
