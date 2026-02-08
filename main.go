@@ -95,11 +95,17 @@ func main() {
 	transactionService := services.NewTransactionService(transactionRepo)
 	transactionHandler := handlers.NewTransactionHandler(transactionService)
 
+	// ===== Report Dependency Injection =====
+	reportRepo := repositories.NewReportRepository(db)
+	reportService := services.NewReportService(reportRepo)
+	reportHandler := handlers.NewReportHandler(reportService)
+
 	// ===== Routes =====
 	// categories === products table
 	http.HandleFunc("/api/categories", categoryHandler.HandleCategories)
 	http.HandleFunc("/api/categories/", categoryHandler.HandleCategoryByID)
 	http.HandleFunc("/api/transactions", transactionHandler.HandleCheckout)
+	http.HandleFunc("/api/reports/daily", reportHandler.HandleDailyReport)
 
 	// optional health check
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
